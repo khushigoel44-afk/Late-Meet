@@ -278,6 +278,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
     }
+
+    case 'START_AUDIO_WITH_STREAM': {
+      // Popup already obtained the streamId (user-gesture context)
+      // Auto-activate meeting if content script hasn't detected it yet
+      if (!meetingState.isActive) {
+        resetState();
+        meetingState.isActive = true;
+        meetingState.startTime = Date.now();
+        meetingState.timeline.push({ event: 'Meeting started (via audio)', timestamp: Date.now(), elapsed: 0 });
+      }
+
+      (async () => {
+        await ensureOffscreen();
+        chrome.runtime.sendMessage({
+          type: 'START_CAPTURE',
+          streamId: message.streamId,
+          tabId: message.tabId
+        });
+        meetingState.audioActive = true;
+        if (!processingInterval) {
+          processingInterval = setInterval(processTranscript, 30000);
+        }
+        broadcastState();
+      })();
+
+      sendResponse({ success: true });
+      break;
+    }
     
     case 'MEETING_ENDED': {
       meetingState.isActive = false;

@@ -62,7 +62,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   const copilotBtn = document.getElementById('start-copilot-btn');
   copilotBtn?.addEventListener('click', async () => {
     try {
-      await chrome.runtime.sendMessage({ type: 'START_AUDIO' });
+      // Get the active Google Meet tab
+      const tabs = await chrome.tabs.query({ url: 'https://meet.google.com/*' });
+      if (tabs.length === 0) {
+        console.warn('No Google Meet tab found');
+        return;
+      }
+      const meetTab = tabs[0];
+
+      // Obtain streamId from popup (user-gesture context required)
+      const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: meetTab.id });
+
+      // Send streamId to background to set up offscreen capture
+      await chrome.runtime.sendMessage({
+        type: 'START_AUDIO_WITH_STREAM',
+        streamId: streamId,
+        tabId: meetTab.id
+      });
       setCopilotActive(true);
     } catch (err) {
       console.error('Failed to start audio capture:', err);
@@ -71,15 +87,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function setCopilotActive(active) {
     if (!copilotBtn) return;
+    const iconEl = copilotBtn.querySelector('.copilot-btn-icon');
     if (active) {
       copilotBtn.classList.add('active');
       copilotBtn.querySelector('.copilot-btn-text').textContent = 'Copilot Active';
-      copilotBtn.querySelector('.copilot-btn-icon').textContent = '✅';
+      iconEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
       copilotBtn.disabled = true;
     } else {
       copilotBtn.classList.remove('active');
       copilotBtn.querySelector('.copilot-btn-text').textContent = 'Start Copilot';
-      copilotBtn.querySelector('.copilot-btn-icon').textContent = '🎙️';
+      iconEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
       copilotBtn.disabled = false;
     }
   }

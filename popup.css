@@ -12,6 +12,7 @@ body {
   min-height: 200px;
   max-height: 580px;
   overflow-y: auto;
+  overflow-x: hidden;
   font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
   background: #000000;
   color: #FAFAFA;
@@ -608,7 +609,7 @@ body::-webkit-scrollbar-thumb {
   font-size: 11px;
   font-weight: 500;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 12px;
   background: #0A0A0A;
   border: 1px solid #171717;
   color: #737373;
