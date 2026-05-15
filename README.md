@@ -75,7 +75,8 @@ The extension is built natively on Manifest V3 using **TypeScript and Vite 5** f
 * **For Regular Users:** You only need the compiled `dist/` folder. This is the actual, ready-to-use extension.  
 * **For Developers:** The `src/` folder contains the raw TypeScript/source code. You must compile it first using the steps below.
 > ⚠️ **Prerequisites:** Google Chrome version **116 or higher** is required.  
-> This extension uses `chrome.tabCapture`, Offscreen Documents API, and Manifest V3 — all of which require Chrome 116+. Users on older versions may experience silent failures.
+> ⚠️ **Prerequisites:** Google Chrome version **116 or higher** is required.  
+> This extension is tested and supported on Chrome 116+. The underlying APIs (`chrome.tabCapture`, Offscreen Documents, Manifest V3) have lower individual minimums, but this project standardizes on Chrome 116+.
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/shouri123/Late-Meet.git
