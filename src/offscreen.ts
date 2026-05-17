@@ -191,12 +191,12 @@ async function cleanupResources() {
     try {
       await audioContext.close();
     } catch (err) {
-  if (audioContext) {
-    try {
-      await audioContext.close();
-    } catch (err) {
-      console.warn("[LateMeet][offscreen] AudioContext close failed:", err);
+      console.warn(
+        "[LateMeet][offscreen] AudioContext close failed:",
+        err,
+      );
     }
+
     audioContext = null;
   }
 
@@ -210,7 +210,6 @@ async function cleanupResources() {
     rmsThreshold: RMS_THRESHOLD,
   });
 }
-
 async function getTabAudioStream(streamId: string) {
   return navigator.mediaDevices.getUserMedia({
     audio: {
