@@ -1,4 +1,7 @@
-0; // MV3 service worker for Late Meet
+// MV3 service worker for Late Meet
+import { initTheme } from "./theme.js";
+
+initTheme();
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -138,18 +141,30 @@ async function broadcastStateUpdate() {
 }
 
 async function getApiKey() {
-  const result = await chrome.storage.local.get("openai_api_key");
-  return result.openai_api_key || null;
+  const sessionResult = await chrome.storage.session.get("openai_api_key");
+  if (sessionResult.openai_api_key) return sessionResult.openai_api_key;
+  const localResult = await chrome.storage.local.get("openai_api_key");
+  return localResult.openai_api_key || null;
 }
 
 interface Settings {
   summarizationInterval?: number;
   aiModel?: string;
+  vadThreshold?: number;
+  lateJoinerBriefing?: boolean;
+  topicDetection?: boolean;
+  decisionDetection?: boolean;
+  actionExtraction?: boolean;
+  sentimentAnalysis?: boolean;
 }
 
 async function getSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get("settings");
   return result.settings || {};
+}
+
+function isFeatureEnabled(settings: Settings, key: keyof Settings): boolean {
+  return settings[key] !== false;
 }
 
 function sanitizePromptText(value: string | null) {
@@ -173,6 +188,11 @@ async function ensureOffscreenDocument() {
     reasons: ["USER_MEDIA" as any],
     justification: "Capture Google Meet tab audio for local transcription",
   });
+
+  // createDocument resolves when the document is created, but the offscreen JS
+  // still needs a moment to execute and register its chrome.runtime.onMessage
+  // listener. Without this delay the first OFFSCREEN_START_CAPTURE is lost.
+  await new Promise((resolve) => setTimeout(resolve, 200));
 }
 
 async function closeOffscreenDocumentIfPresent() {
@@ -199,9 +219,14 @@ function getTranscriptionPrompt() {
 async function transcribeChunk(base64Audio: string, mimeType = "audio/webm", prompt = "") {
   // Use ElevenLabs API key if available, fallback to OpenAI if not?
   // No, the requirement is to use ElevenLabs.
-  const elevenlabsKey = await chrome.storage.local
+  let elevenlabsKey = await chrome.storage.session
     .get("elevenlabs_api_key")
     .then((r) => r.elevenlabs_api_key);
+  if (!elevenlabsKey) {
+    elevenlabsKey = await chrome.storage.local
+      .get("elevenlabs_api_key")
+      .then((r) => r.elevenlabs_api_key);
+  }
 
   const bytes = Uint8Array.from(atob(base64Audio), (c) => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: mimeType });
@@ -368,14 +393,35 @@ async function summarizeTranscriptIfNeeded() {
     .join("\n");
   if (!transcriptWindow.trim()) return;
 
+  const topicDetectionEnabled = isFeatureEnabled(settings, "topicDetection");
+  const decisionDetectionEnabled = isFeatureEnabled(settings, "decisionDetection");
+  const actionExtractionEnabled = isFeatureEnabled(settings, "actionExtraction");
+  const sentimentAnalysisEnabled = isFeatureEnabled(settings, "sentimentAnalysis");
+  const outputFields = [
+    '"summary": "Updated meeting summary..."',
+    ...(topicDetectionEnabled
+      ? [
+          '"topics": [{"name": "Topic", "status": "active|completed"}]',
+          '"currentTopic": "Identifying the current main topic"',
+        ]
+      : []),
+    ...(decisionDetectionEnabled ? ['"decisions": ["Decision 1", ...]'] : []),
+    ...(actionExtractionEnabled ? ['"actionItems": ["Action 1", ...]'] : []),
+    ...(sentimentAnalysisEnabled ? ['"sentiment": "positive|neutral|negative|mixed"'] : []),
+    '"keyInsights": ["Insight 1", ...]',
+    '"questionsRaised": ["Question 1", ...]',
+  ];
+
   const systemPrompt = `You are a World-Class Meeting Intelligence Engine. 
 Your goal is to extract high-fidelity insights from meeting transcripts.
 
 OUTPUT GUIDELINES:
 - Provide a concise yet professional summary (business grade).
-- Identify distinct topics and their statuses (active/completed).
-- Precisely capture decisions and action items (with assignees if mentioned).
-- Detect the prevailing sentiment and emotional dynamics.
+- Extract only the fields requested by the user prompt.
+${topicDetectionEnabled ? "- Identify distinct topics and their statuses (active/completed)." : ""}
+${decisionDetectionEnabled ? "- Precisely capture decisions if mentioned." : ""}
+${actionExtractionEnabled ? "- Precisely capture action items with assignees if mentioned." : ""}
+${sentimentAnalysisEnabled ? "- Detect the prevailing sentiment and emotional dynamics." : ""}
 - Extract "Key Insights" that go beyond a simple summary (strategic value).
 - Track specific questions raised that remain unanswered.
 
@@ -392,14 +438,7 @@ ${transcriptWindow}
 
 Return a JSON object with these exact keys:
 {
-  "summary": "Updated meeting summary...",
-  "topics": [{"name": "Topic", "status": "active|completed"}],
-  "decisions": ["Decision 1", ...],
-  "actionItems": ["Action 1", ...],
-  "currentTopic": "Identifying the current main topic",
-  "sentiment": "positive|neutral|negative|mixed",
-  "keyInsights": ["Insight 1", ...],
-  "questionsRaised": ["Question 1", ...]
+  ${outputFields.join(",\n  ")}
 }`;
 
   const response = await fetch(OPENAI_CHAT_URL, {
@@ -439,6 +478,28 @@ Return a JSON object with these exact keys:
   }
   state.currentTopic = parsed.currentTopic || state.currentTopic;
   state.sentiment = parsed.sentiment || state.sentiment;
+  if (topicDetectionEnabled) {
+    state.topics = Array.isArray(parsed.topics) ? parsed.topics : state.topics;
+    state.currentTopic = parsed.currentTopic || state.currentTopic;
+  } else {
+    state.topics = [];
+    state.currentTopic = "";
+  }
+  if (decisionDetectionEnabled) {
+    state.decisions = Array.isArray(parsed.decisions) ? parsed.decisions : state.decisions;
+  } else {
+    state.decisions = [];
+  }
+  if (actionExtractionEnabled) {
+    state.actionItems = Array.isArray(parsed.actionItems) ? parsed.actionItems : state.actionItems;
+  } else {
+    state.actionItems = [];
+  }
+  if (sentimentAnalysisEnabled) {
+    state.sentiment = parsed.sentiment || state.sentiment;
+  } else {
+    state.sentiment = "neutral";
+  }
   state.keyInsights = Array.isArray(parsed.keyInsights) ? parsed.keyInsights : state.keyInsights;
   state.questionsRaised = Array.isArray(parsed.questionsRaised)
     ? parsed.questionsRaised
@@ -568,6 +629,9 @@ async function sendChatToTab(tabId: number, text: string) {
 async function maybeWelcomeJoiners(tabId: number | undefined, joiners: string[]) {
   if (!joiners.length || getDuration() <= MIN_MEETING_DURATION_FOR_WELCOME || !tabId) return;
 
+  const settings = await getSettings();
+  if (!isFeatureEnabled(settings, "lateJoinerBriefing")) return;
+
   const normalizedSelf = normalizeParticipantName(selfParticipantName);
 
   for (const joiner of joiners) {
@@ -630,7 +694,9 @@ async function startAudioCapture(
 
   await ensureOffscreenDocument();
 
-  if (!state.isActive) {
+  const createdSession = !state.isActive;
+
+  if (createdSession) {
     resetState();
     state.isActive = true;
     state.startTime = Date.now();
@@ -665,11 +731,16 @@ async function startAudioCapture(
       );
     }
 
+    const settings = await getSettings();
+    const raw = settings.vadThreshold;
+    const vadThreshold =
+      typeof raw === "number" && Number.isFinite(raw) && raw > 0 && raw <= 1 ? raw : 0.012;
     const response = await chrome.runtime.sendMessage({
       type: "OFFSCREEN_START_CAPTURE",
       streamId,
       tabId,
       includeMicrophone,
+      vadThreshold,
     });
 
     if (!response?.success) {
@@ -684,6 +755,10 @@ async function startAudioCapture(
     await broadcastStateUpdate();
   } catch (err) {
     state.audioActive = false;
+    if (createdSession) {
+      resetState();
+      await broadcastStateUpdate();
+    }
     throw err;
   }
 }
@@ -778,6 +853,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     }
   } catch (err) {
     // Tab might be closed by now
+    console.log(err); // since lint is giving error
   }
 });
 
@@ -837,6 +913,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
 
+      case "WAVEFORM_DATA": {
+        if (!message._relayed) {
+          chrome.runtime
+            .sendMessage({ type: "WAVEFORM_DATA", buckets: message.buckets, _relayed: true })
+            .catch(() => {});
+        }
+        sendResponse({ success: true });
+        return;
+      }
+
+      case "OFFSCREEN_LOG": {
+        // Relay log lines from the offscreen document into the SW console so
+        // they are visible without opening the offscreen DevTools separately.
+        console.log("[LateMeet][offscreen]", message.message);
+        sendResponse({ success: true });
+        return;
+      }
+
       case "OFFSCREEN_CAPTURE_STOPPED": {
         state.audioActive = false;
         await broadcastStateUpdate();
@@ -846,24 +940,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       case "OFFSCREEN_AUDIO_CHUNK": {
         if (!state.isActive) {
+          console.warn("[LateMeet] chunk received but session not active — ignored");
           sendResponse({ success: true, ignored: true });
           return;
         }
 
+        const base64Len = message.audioBase64?.length ?? 0;
+        const approxBytes = Math.round((base64Len * 3) / 4);
+        console.log(
+          `[LateMeet] chunk received — ~${approxBytes} bytes  mimeType=${message.mimeType}`,
+        );
+
         try {
           const prompt = getTranscriptionPrompt();
           const rawText = await transcribeChunk(message.audioBase64, message.mimeType, prompt);
-          console.log("[LateMeet] Raw transcription:", rawText);
           if (rawText) {
+            console.log(`[LateMeet] transcript received — ${rawText.length} chars`);
             const refinedText = await refineTranscription(rawText);
-            console.log("[LateMeet] Refined transcription:", refinedText);
+            console.log(`[LateMeet] transcript refined — ${refinedText.length} chars`);
             state.transcript.push({ speaker: "Audio", text: refinedText, timestamp: Date.now() });
             await summarizeTranscriptIfNeeded();
             await broadcastStateUpdate();
+          } else {
+            console.warn("[LateMeet] STT returned empty — chunk may be silent or too short");
           }
           sendResponse({ success: true });
         } catch (err) {
-          console.error("[LateMeet] Audio chunk processing failed:", err);
+          console.error("[LateMeet] chunk processing failed:", err);
           sendResponse({ success: false, error: (err as Error).message });
         }
         return;
