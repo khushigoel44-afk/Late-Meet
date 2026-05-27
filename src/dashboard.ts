@@ -3,7 +3,62 @@ import { initTheme } from "./theme.js";
 
 initTheme();
 
+// ——— Action Item Status Persistence ———
+const actionStatuses = new Map<string, boolean>();
+let currentMeetingId = "unknown";
+
+function resolveActionKey(item: ActionItem | unknown): string {
+  if (item && typeof item === "object" && "task" in (item as object)) {
+    const task = (item as { task?: unknown }).task;
+    return String(task ?? "").trim();
+  }
+  return String(item ?? "").trim();
+}
+
+function buildActionStatusKey(meetingId: string, task: string): string {
+  return `${meetingId}::${task}`;
+}
+
+function normalizeActionItem(input: unknown): ActionItem | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as { task?: unknown; owner?: unknown; deadline?: unknown };
+  const task = String(raw.task ?? "").trim();
+  if (!task) return null;
+  return {
+    task,
+    owner: String(raw.owner ?? "").trim() || undefined,
+    deadline: String(raw.deadline ?? "").trim() || undefined,
+  } as ActionItem;
+}
+
+async function loadActionStatuses() {
+  try {
+    const result = await chrome.storage.local.get("actionItemStatuses");
+    const stored = result.actionItemStatuses;
+    if (stored && typeof stored === "object") {
+      for (const [k, v] of Object.entries(stored as Record<string, unknown>)) {
+        actionStatuses.set(k, Boolean(v));
+      }
+    }
+  } catch (err) {
+    console.error("[Dashboard] Failed to load action statuses:", err);
+  }
+}
+
+async function persistActionStatuses() {
+  try {
+    const obj: Record<string, boolean> = {};
+    actionStatuses.forEach((v, k) => {
+      obj[k] = v;
+    });
+    await chrome.storage.local.set({ actionItemStatuses: obj });
+  } catch (err) {
+    console.error("[Dashboard] Failed to persist action statuses:", err);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  await loadActionStatuses();
   // ——— Waveform Visualizer ———
   const WAVEFORM_N = 32;
   const WAVEFORM_H = 48;
@@ -246,6 +301,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ——— Update Dashboard ———
   function updateDashboard(state: State) {
+    currentMeetingId = state.meetingId || "unknown";
     // Status
     const statusDot = document.querySelector(".dash-status-dot");
     const statusText = document.getElementById("dash-status-text");
@@ -391,20 +447,70 @@ document.addEventListener("DOMContentLoaded", async () => {
       container.innerHTML = '<div class="empty-msg">No action items detected yet</div>';
       return;
     }
-    container.innerHTML = actions
-      .map(
-        (a) => `
-      <div class="action-item">
-        <div class="action-check"></div>
-        <div class="action-info">
-          <div class="action-task">${escapeHtml(a.task || "")}</div>
-          ${a.owner ? `<span class="action-owner"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" style="margin-right:2px"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>${escapeHtml(a.owner)}</span>` : ""}
-          ${a.deadline ? `<div class="action-deadline"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" style="margin-right:2px"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>${escapeHtml(a.deadline)}</div>` : ""}
-        </div>
-      </div>
-    `,
-      )
-      .join("");
+
+    container.innerHTML = "";
+    actions.forEach((a, idx) => {
+      const normalized = normalizeActionItem(a);
+      const task = normalized?.task ?? resolveActionKey(a);
+      if (!task) return;
+      const owner = normalized?.owner ?? "";
+      const deadline = normalized?.deadline ?? "";
+      const statusKey = buildActionStatusKey(currentMeetingId, task);
+      const done = actionStatuses.get(statusKey) === true;
+      const cbId = `action-cb-${idx}`;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "action-item" + (done ? " action-item--done" : "");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "action-checkbox";
+      checkbox.id = cbId;
+      checkbox.checked = done;
+      checkbox.setAttribute("aria-label", "Mark task complete");
+      checkbox.dataset.task = task;
+      checkbox.dataset.meetingId = currentMeetingId;
+
+      const label = document.createElement("label");
+      label.className = "action-info";
+      label.htmlFor = cbId;
+
+      const taskDiv = document.createElement("div");
+      taskDiv.className = "action-task" + (done ? " action-task--done" : "");
+      taskDiv.textContent = task;
+      label.appendChild(taskDiv);
+
+      if (owner) {
+        const ownerSpan = document.createElement("span");
+        ownerSpan.className = "action-owner";
+        ownerSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" style="margin-right:2px"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+        ownerSpan.appendChild(document.createTextNode(owner));
+        label.appendChild(ownerSpan);
+      }
+
+      if (deadline) {
+        const deadlineDiv = document.createElement("div");
+        deadlineDiv.className = "action-deadline";
+        deadlineDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" style="margin-right:2px"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>`;
+        deadlineDiv.appendChild(document.createTextNode(deadline));
+        label.appendChild(deadlineDiv);
+      }
+
+      checkbox.addEventListener("change", () => {
+        const taskText = checkbox.dataset.task || "";
+        const meetId = checkbox.dataset.meetingId || currentMeetingId;
+        const key = buildActionStatusKey(meetId, taskText);
+        const isDone = checkbox.checked;
+        actionStatuses.set(key, isDone);
+        void persistActionStatuses();
+        wrapper.classList.toggle("action-item--done", isDone);
+        taskDiv.classList.toggle("action-task--done", isDone);
+      });
+
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
+    });
   }
 
   // ——— People ———
@@ -594,7 +700,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (state.actionItems?.length) {
       markdown += `## Action Items\n`;
       state.actionItems.forEach((a: ActionItem) => {
-        markdown += `- [ ] ${a.task}`;
+        const task = resolveActionKey(a);
+        if (!task) return;
+        const statusKey = buildActionStatusKey(currentMeetingId, task);
+        const done = actionStatuses.get(statusKey) === true;
+        markdown += done ? `- [x] ${task}` : `- [ ] ${task}`;
         if (a.owner) markdown += ` → ${a.owner}`;
         if (a.deadline) markdown += ` (due: ${a.deadline})`;
         markdown += "\n";
@@ -843,9 +953,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       md += "\n";
     }
     if (session.actionItems?.length) {
+      const sessionMeetingId = session.meetingId || "unknown";
       md += `## Action Items\n`;
       session.actionItems.forEach((a: ActionItem) => {
-        md += `- [ ] ${a.task}`;
+        const task = resolveActionKey(a);
+        if (!task) return;
+        const statusKey = buildActionStatusKey(sessionMeetingId, task);
+        const done = actionStatuses.get(statusKey) === true;
+        md += done ? `- [x] ${task}` : `- [ ] ${task}`;
         if (a.owner) md += ` → ${a.owner}`;
         if (a.deadline) md += ` (due: ${a.deadline})`;
         md += "\n";

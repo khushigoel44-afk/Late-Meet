@@ -1,7 +1,4 @@
 // MV3 service worker for Late Meet
-import { initTheme } from "./theme.js";
-
-initTheme();
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -46,6 +43,7 @@ const state: State = {
 };
 
 let selfParticipantName: string | null = null;
+const notifiedActionItems = new Set<string>();
 let activeSpeakerName: string | null = null;
 let activeSpeakerUpdatedAt = 0;
 const ACTIVE_SPEAKER_TTL_MS = 15000;
@@ -81,6 +79,7 @@ function resetState() {
   state.pendingJoiners.clear();
   state.participantCount = 0;
   selfParticipantName = null;
+  notifiedActionItems.clear();
   activeSpeakerName = null;
   activeSpeakerUpdatedAt = 0;
 }
@@ -548,6 +547,10 @@ Return a JSON object with these exact keys:
     state.decisions = [];
   }
   if (actionExtractionEnabled) {
+    if (Array.isArray(parsed.actionItems)) {
+      state.actionItems = parsed.actionItems;
+      notifyNewActionItems(state.actionItems);
+    }
     state.actionItems = normalizeActionItems(parsed.actionItems, state.actionItems);
   } else {
     state.actionItems = [];
@@ -562,6 +565,39 @@ Return a JSON object with these exact keys:
     ? parsed.questionsRaised
     : state.questionsRaised;
   state.lastSummarizedAt = Date.now();
+}
+
+function actionItemKey(item: ActionItem | unknown): string {
+  if (item && typeof item === "object" && "task" in (item as object)) {
+    const task = (item as { task?: unknown }).task;
+    return String(task ?? "").trim();
+  }
+  return String(item ?? "").trim();
+}
+
+function notifyNewActionItems(items: ActionItem[]) {
+  if (!chrome.notifications) return;
+  for (const item of items) {
+    const key = actionItemKey(item);
+    if (!key || notifiedActionItems.has(key)) continue;
+    const message = key.length > 100 ? key.slice(0, 97) + "..." : key;
+    const notifId = `lm-action-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    chrome.notifications.create(
+      notifId,
+      {
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("src/icons/icon128.png"),
+        title: "New Action Item",
+        message,
+        priority: 1,
+      },
+      () => {
+        if (!chrome.runtime.lastError) {
+          notifiedActionItems.add(key);
+        }
+      },
+    );
+  }
 }
 
 function detectNewJoiners(currentList: string[]) {
