@@ -164,17 +164,27 @@ export async function elevenlabsTranscribe(
 
 export async function validateOpenAIKey(apiKey: string): Promise<boolean> {
   if (!apiKey) return false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(OPENAI_MODELS_URL, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
+      signal: controller.signal,
     });
     return response.ok;
-  } catch (error) {
-    console.error("OpenAI validation error:", error);
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      console.error("OpenAI validation timed out");
+    } else {
+      console.error("OpenAI validation error:", error);
+    }
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -184,12 +194,16 @@ export async function validateOpenAIKey(apiKey: string): Promise<boolean> {
 
 export async function validateElevenLabsKey(apiKey: string): Promise<boolean> {
   if (!apiKey) return false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(ELEVENLABS_USER_URL, {
       method: "GET",
       headers: {
         "xi-api-key": apiKey,
       },
+      signal: controller.signal,
     });
     if (response.ok) {
       return true;
@@ -199,8 +213,14 @@ export async function validateElevenLabsKey(apiKey: string): Promise<boolean> {
       return data?.detail?.status === "missing_permissions";
     }
     return false;
-  } catch (error) {
-    console.error("ElevenLabs validation error:", error);
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      console.error("ElevenLabs validation timed out");
+    } else {
+      console.error("ElevenLabs validation error:", error);
+    }
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
