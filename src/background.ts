@@ -877,6 +877,7 @@ async function persistSession() {
     console.log("[LateMeet] Session successfully saved:", pendingSession.id);
   } catch (err) {
     console.error("[LateMeet] Error persisting session:", err);
+    throw err;
   } finally {
     isProcessingSession = false;
   }
@@ -893,6 +894,7 @@ async function discardPendingSession() {
     console.log("[LateMeet] Pending session discarded.");
   } catch (err) {
     console.error("[LateMeet] Error discarding session:", err);
+    throw err;
   } finally {
     isProcessingSession = false;
   }
@@ -1135,6 +1137,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           message.streamId,
           message.includeMicrophone !== false,
         );
+        sendResponse({ success: true });
+        return;
+      }
+
+      case "MANUAL_STOP_AUDIO": {
+        await stopAudioCapture("Manual stop");
         sendResponse({ success: true });
         return;
       }

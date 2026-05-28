@@ -26,6 +26,12 @@ function setupChromeStorage(sessionInitial: StorageArea = {}, localInitial: Stor
       async set(values: StorageArea) {
         Object.assign(store, values);
       },
+      async remove(keys: string | string[]) {
+        const keyList = Array.isArray(keys) ? keys : [keys];
+        for (const key of keyList) {
+          delete store[key];
+        }
+      },
     };
   }
 
@@ -72,4 +78,16 @@ test("saving credentials writes the same values to local and session storage", a
 
   assert.deepEqual(session, { openai_api_key: "openai", elevenlabs_api_key: "elevenlabs" });
   assert.deepEqual(local, { openai_api_key: "openai", elevenlabs_api_key: "elevenlabs" });
+});
+
+test("clearing credentials deletes them from both local and session storage", async () => {
+  const { session, local } = setupChromeStorage(
+    { openai_api_key: "openai", elevenlabs_api_key: "elevenlabs" },
+    { openai_api_key: "openai", elevenlabs_api_key: "elevenlabs" },
+  );
+
+  await saveApiCredentials({ openai_api_key: "", elevenlabs_api_key: "" });
+
+  assert.deepEqual(session, {});
+  assert.deepEqual(local, {});
 });

@@ -308,7 +308,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      await chrome.runtime.sendMessage({ type: "SAVE_SESSION" });
+      const response = await chrome.runtime.sendMessage({ type: "SAVE_SESSION" });
+      if (!response?.success) {
+        throw new Error(response?.error || "Failed to save session");
+      }
       hideSessionModal();
     } catch (err) {
       console.error("[LateMeet] Failed to save session:", err);
@@ -335,7 +338,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      await chrome.runtime.sendMessage({ type: "DISCARD_SESSION" });
+      const response = await chrome.runtime.sendMessage({ type: "DISCARD_SESSION" });
+      if (!response?.success) {
+        throw new Error(response?.error || "Failed to discard session");
+      }
       hideSessionModal();
     } catch (err) {
       console.error("[LateMeet] Failed to discard session:", err);

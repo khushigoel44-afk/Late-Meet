@@ -53,17 +53,29 @@ export async function getElevenLabsApiKey(): Promise<string | null> {
 
 export async function saveApiCredentials(credentials: ApiCredentials): Promise<void> {
   const saveData: ApiCredentials = {};
+  const removeKeys: CredentialKey[] = [];
 
   for (const key of CREDENTIAL_KEYS) {
     const value = normalizedCredential(credentials[key]);
     if (value) {
       saveData[key] = value;
+    } else {
+      removeKeys.push(key);
     }
   }
 
-  if (Object.keys(saveData).length === 0) {
-    return;
+  const operations: Promise<unknown>[] = [];
+
+  if (Object.keys(saveData).length > 0) {
+    operations.push(chrome.storage.session.set(saveData), chrome.storage.local.set(saveData));
   }
 
-  await Promise.all([chrome.storage.session.set(saveData), chrome.storage.local.set(saveData)]);
+  if (removeKeys.length > 0) {
+    operations.push(
+      chrome.storage.session.remove(removeKeys),
+      chrome.storage.local.remove(removeKeys),
+    );
+  }
+
+  await Promise.all(operations);
 }
