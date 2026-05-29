@@ -13,6 +13,7 @@ import {
   StoredSession,
 } from "./sessionStorage";
 import { AudioChunkQueue, AudioChunkQueueItem } from "./audioChunkQueue";
+import { normalizeActiveSpeakerName, resolveTranscriptSpeaker } from "./speakerAttribution";
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -217,6 +218,7 @@ const state: State = {
   timeline: [],
   transcript: [],
   audioActive: false,
+  currentSpeaker: null,
   targetTabId: null,
   lastSummarizedAt: 0,
   pendingJoiners: new Set(),
@@ -250,6 +252,7 @@ function resetState() {
   state.timeline = [];
   state.transcript = [];
   state.audioActive = false;
+  state.currentSpeaker = null;
   state.targetTabId = null;
   state.lastSummarizedAt = 0;
   state.pendingJoiners.clear();
@@ -292,6 +295,7 @@ function snapshot() {
     timeline: state.timeline,
     transcript: state.transcript,
     audioActive: state.audioActive,
+    currentSpeaker: state.currentSpeaker,
     participantCount: state.participantCount,
   };
 }
@@ -722,6 +726,7 @@ interface QueuedAudioChunk {
   mimeType: string;
   approxBytes: number;
   receivedAt: number;
+  speaker: string;
 }
 
 async function processQueuedAudioChunk({ id, item }: AudioChunkQueueItem<QueuedAudioChunk>) {
@@ -747,7 +752,7 @@ async function processQueuedAudioChunk({ id, item }: AudioChunkQueueItem<QueuedA
   console.log(`[LateMeet] transcript refined for chunk ${id} — ${refinedText.length} chars`);
 
   state.transcript.push({
-    speaker: "Audio",
+    speaker: resolveTranscriptSpeaker(item.speaker || state.currentSpeaker),
     text: refinedText,
     timestamp: item.receivedAt,
   });
@@ -1247,6 +1252,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           mimeType: typeof message.mimeType === "string" ? message.mimeType : "audio/webm",
           approxBytes,
           receivedAt: Date.now(),
+          speaker: resolveTranscriptSpeaker(state.currentSpeaker),
         });
 
         if (!result.accepted) {
@@ -1283,6 +1289,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await maybeWelcomeJoiners(sender?.tab?.id || state.targetTabId || undefined, joiners);
         await broadcastStateUpdate();
         sendResponse({ success: true, joiners });
+        return;
+      }
+
+      case "ACTIVE_SPEAKER_CHANGED": {
+        const speaker = normalizeActiveSpeakerName(message.name);
+
+        if (!speaker) {
+          sendResponse({ success: false, error: "Invalid active speaker name" });
+          return;
+        }
+
+        state.currentSpeaker = speaker;
+        await broadcastStateUpdate();
+        sendResponse({ success: true, speaker });
         return;
       }
 
