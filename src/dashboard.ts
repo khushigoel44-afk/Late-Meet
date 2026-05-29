@@ -913,7 +913,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     md += `## Key Insights\n`;
     if (state.keyInsights?.length) {
-      state.keyInsights.forEach((i: string) => (md += `- ${i}\n`));
+      state.keyInsights.forEach((insight) => {
+        md += `- ${insight}\n`;
+      });
       md += "\n";
     } else {
       md += `_No insights available_\n\n`;
