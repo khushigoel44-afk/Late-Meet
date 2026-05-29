@@ -26,11 +26,11 @@ const SALT_STORAGE_KEY = "credential_encryption_salt";
 const SEED_STORAGE_KEY = "credential_encryption_seed";
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+  return Uint8Array.from(atob(base64), (c) => c.codePointAt(0)!).buffer;
 }
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+  return btoa(String.fromCodePoint(...new Uint8Array(buf)));
 }
 
 async function deriveEncryptionKey(seed: ArrayBuffer, salt: ArrayBuffer): Promise<CryptoKey> {
