@@ -621,6 +621,7 @@ git push origin feature/your-feature-name
 
 ### Open Issues by Difficulty
 
+<!-- START_ISSUE_TABLES -->
 <div align="center">
 
 #### 🟢 Beginner — `level-1`
@@ -659,6 +660,7 @@ git push origin feature/your-feature-name
 |  [#99](https://github.com/shouri123/Late-Meet/issues/99)  | Speaker confidence collapse detection | NLP, TypeScript |
 
 </div>
+<!-- END_ISSUE_TABLES -->
 
 ### PR Checklist
 
