@@ -25,6 +25,8 @@ function makeSession(id: string, savedAt: number): StoredSession {
     currentTopic: "",
     sentiment: "neutral",
     keyInsights: [],
+    unresolvedDiscussions: [],
+    contradictions: [],
     questionsRaised: [],
     participants: [],
     initialParticipants: [],
@@ -34,6 +36,7 @@ function makeSession(id: string, savedAt: number): StoredSession {
     unresolvedDiscussions: [],
     contradictions: [],
     audioActive: false,
+    duration: 10,
   };
 }
 

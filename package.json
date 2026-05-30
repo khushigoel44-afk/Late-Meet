@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "tsx --test src/audioProcessing.test.ts src/audioChunkQueue.test.ts src/participantDetection.test.ts src/meetingTabs.test.ts src/sessionStorage.test.ts src/dashboardCapture.test.ts src/popupCapture.test.ts src/speakerAttribution.test.ts src/utils/credentials.test.ts",
+    "test": "tsx --test src/audioProcessing.test.ts src/audioChunkQueue.test.ts src/participantDetection.test.ts src/meetingTabs.test.ts src/sessionStorage.test.ts src/dashboardCapture.test.ts src/popupCapture.test.ts src/speakerAttribution.test.ts src/utils/credentials.test.ts src/background.urlParsing.test.ts",
     "lint": "eslint . --ext .ts,.js",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
@@ -54,10 +54,12 @@
     "prettier": "^3.2.5",
     "tsx": "^4.20.3",
     "typescript": "^5.3.3",
-    "vite": "^5.4.21"
+    "vite": "^6.4.2",
+    "@types/express": "^4.17.21"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.45.0",
-    "@openrouter/sdk": "^0.12.20"
+    "@openrouter/sdk": "^0.12.20",
+    "express": "^4.19.2"
   }
 }

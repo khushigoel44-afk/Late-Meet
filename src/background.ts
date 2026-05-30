@@ -14,6 +14,7 @@ import {
 } from "./sessionStorage";
 import { AudioChunkQueue, AudioChunkQueueItem } from "./audioChunkQueue";
 import { normalizeActiveSpeakerName, resolveTranscriptSpeaker } from "./speakerAttribution";
+import { getOpenAiApiKey, getElevenLabsApiKey } from "./utils/credentials";
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -340,15 +341,7 @@ async function broadcastStateUpdate() {
 }
 
 async function getApiKey() {
-  const result = await chrome.storage.session.get("openai_api_key");
-  if (result.openai_api_key) return result.openai_api_key;
-
-  const localResult = await chrome.storage.local.get("openai_api_key");
-  if (localResult.openai_api_key) {
-    await chrome.storage.session.set({ openai_api_key: localResult.openai_api_key });
-    return localResult.openai_api_key;
-  }
-  return null;
+  return getOpenAiApiKey();
 }
 
 interface Settings {
@@ -421,18 +414,7 @@ function getTranscriptionPrompt() {
 }
 
 async function transcribeChunk(base64Audio: string, mimeType = "audio/webm", prompt = "") {
-  // Single declaration — retrieved from session storage with local storage fallback.
-  let elevenlabsKey = await chrome.storage.session
-    .get("elevenlabs_api_key")
-    .then((r) => r.elevenlabs_api_key);
-
-  if (!elevenlabsKey) {
-    const localResult = await chrome.storage.local.get("elevenlabs_api_key");
-    if (localResult.elevenlabs_api_key) {
-      elevenlabsKey = localResult.elevenlabs_api_key;
-      await chrome.storage.session.set({ elevenlabs_api_key: elevenlabsKey });
-    }
-  }
+  const elevenlabsKey = await getElevenLabsApiKey();
 
   const bytes = Uint8Array.from(atob(base64Audio), (c) => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: mimeType });
@@ -1171,9 +1153,13 @@ async function stopAudioCapture(reason = "Stopped") {
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url?.includes("meet.google.com/")) {
-    const urlMatch = tab.url.match(/meet\.google\.com\/([a-z\-]+)/);
-    const meetingId = urlMatch ? urlMatch[1] : null;
+  if (changeInfo.status !== "complete" || !tab.url) return;
+  try {
+    const parsedUrl = new URL(tab.url);
+    if (parsedUrl.hostname !== "meet.google.com") return;
+
+    const pathMatch = /^\/([a-z-]+)/.exec(parsedUrl.pathname);
+    const meetingId = pathMatch ? pathMatch[1] : null;
 
     if (meetingId && meetingId !== "new") {
       if (!state.isActive) {
@@ -1187,21 +1173,24 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         await broadcastStateUpdate();
       }
     }
+  } catch {
+    // invalid URL — ignore silently
   }
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    if (tab.url?.includes("meet.google.com/")) {
-      const urlMatch = tab.url.match(/meet\.google\.com\/([a-z\-]+)/);
-      const meetingId = urlMatch ? urlMatch[1] : null;
-      if (meetingId && meetingId !== "new" && !state.isActive) {
-        state.meetingId = meetingId;
-        state.meetingUrl = tab.url;
-        state.targetTabId = activeInfo.tabId;
-        await broadcastStateUpdate();
-      }
+    if (!tab.url) return;
+    const parsedUrl = new URL(tab.url);
+    if (parsedUrl.hostname !== "meet.google.com") return;
+    const pathMatch = /^\/([a-z-]+)/.exec(parsedUrl.pathname);
+    const meetingId = pathMatch ? pathMatch[1] : null;
+    if (meetingId && meetingId !== "new" && !state.isActive) {
+      state.meetingId = meetingId;
+      state.meetingUrl = tab.url;
+      state.targetTabId = activeInfo.tabId;
+      await broadcastStateUpdate();
     }
   } catch (err) {
     console.debug("[LateMeet] tab activation handler failed:", err);
