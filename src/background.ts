@@ -508,7 +508,7 @@ async function refineTranscription(rawText: string) {
   if (!apiKey) return rawText;
 
   const systemPrompt = `You are an expert AI transcription editor. 
-Your task is to correct errors, remove filler words (um, uh, like), and improve the clarity of the provided meeting transcript segment while strictly preserving the speaker's original meaning and intent. 
+Your task is to correct errors, remove filler words (um, uh, like), and improve the clarity of the provided meeting transcript segment while strictly preserving the speaker's original meaning and intent.
 Return ONLY the corrected transcript text. If the input is unclear, inaudible, or empty, return the exact input unchanged. Never add commentary, apologies, or meta-responses.`;
 
   try {
@@ -842,7 +842,7 @@ async function generateLateJoinerMessage(joinerName: string) {
     const apiKey = await getApiKey();
     if (!apiKey) return fallback;
 
-    const prompt = `A participant named ${safeJoinerName} joined late. Meeting duration: ${Math.round(context.duration / 60)} minutes. Current topic: ${sanitizePromptText(context.currentTopic || "General discussion")}. Recent topics: ${sanitizePromptText(JSON.stringify(context.topics || []))}. Decisions: ${sanitizePromptText(JSON.stringify(context.decisions || []))}. Write a short welcome message under 3 sentences. Output plain text only.`;
+    const prompt = `A participant named ${safeJoinerName} joined late. Meeting duration: ${Math.round(context.duration / 60)} minutes. Current topic: ${sanitizePromptText(context.currentTopic || "project updates")}. Share a warm, concise catch-up message with key context and any confirmed decisions/action items.`;
 
     return await apiQueue.enqueue("late-joiner-message", async () => {
       const response = await fetch(OPENAI_CHAT_URL, {
@@ -1184,6 +1184,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (!tab.url) return;
     const parsedUrl = new URL(tab.url);
     if (parsedUrl.hostname !== "meet.google.com") return;
+
     const pathMatch = /^\/([a-z-]+)/.exec(parsedUrl.pathname);
     const meetingId = pathMatch ? pathMatch[1] : null;
     if (meetingId && meetingId !== "new" && !state.isActive) {
