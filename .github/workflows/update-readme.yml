@@ -7,13 +7,14 @@ on:
     types: [opened, edited, deleted, closed, reopened, labeled, unlabeled]
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
-permissions:
-  contents: write
+permissions: read-all
 
 jobs:
   update-readme:
     name: Update README.md
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

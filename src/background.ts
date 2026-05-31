@@ -292,6 +292,16 @@ async function hydrateState() {
 // This state is discarded on service worker suspension and not restored.
 const pendingJoinersInFlight = new Set<string>();
 
+/** Securely checks whether a URL belongs to meet.google.com using URL parsing (not substring matching). */
+function isMeetHostname(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).hostname === "meet.google.com";
+  } catch {
+    return false;
+  }
+}
+
 function normalizeParticipantName(value: string | null | undefined): string {
   return String(value || "")
     .trim()
@@ -437,8 +447,8 @@ async function executeBroadcast() {
   try {
     // To content scripts — minimal state (they only need isActive/audioActive for the floating button)
     const contentState = {
-      isActive: snapshotData.isActive,
-      audioActive: snapshotData.audioActive,
+      isActive: fullSnapshot.isActive,
+      audioActive: fullSnapshot.audioActive,
     };
     const tabs = await chrome.tabs.query({ url: "https://meet.google.com/*" });
     for (const tab of tabs) {
@@ -1636,7 +1646,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "transcribe-tab") return;
   if (!tab?.id) return;
 
-  const isMeetTab = Boolean(tab.url?.includes("meet.google.com/"));
+  const isMeetTab = isMeetHostname(tab.url);
   const meetingId = isMeetTab
     ? (tab.url?.match(/meet\.google\.com\/([a-z-]+)/)?.[1] ?? null)
     : null;
@@ -1647,7 +1657,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       // Detect if the context-menu target differs from the preloaded state.
       // If switching from Meet to non-Meet (or vice versa), force a fresh reset
       // to avoid session metadata leakage.
-      const wasPreloadedMeet = Boolean(state.meetingUrl?.includes("meet.google.com/"));
+      const wasPreloadedMeet = isMeetHostname(state.meetingUrl);
       const isNewMeet = isMeetTab;
       const contextMismatch = wasPreloadedMeet !== isNewMeet;
 

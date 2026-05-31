@@ -224,6 +224,8 @@ test("saving partial credentials does not wipe out omitted keys", async () => {
     { openai_api_key: "existing-openai", elevenlabs_api_key: "existing-eleven" },
   );
 
+  await unlockCredentials("test-passphrase");
+
   // Omit elevenlabs_api_key entirely from the object
   await saveApiCredentials({ openai_api_key: "new-openai" });
 
@@ -231,5 +233,6 @@ test("saving partial credentials does not wipe out omitted keys", async () => {
     openai_api_key: "new-openai",
     elevenlabs_api_key: "existing-eleven",
   });
-  assert.deepEqual(local, { openai_api_key: "new-openai", elevenlabs_api_key: "existing-eleven" });
+  assert.equal(local.elevenlabs_api_key, "existing-eleven");
+  assert.ok((local.openai_api_key as string).startsWith("enc:"));
 });

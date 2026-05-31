@@ -68,6 +68,9 @@ export interface State {
   transcript: TranscriptEntry[];
   audioActive: boolean;
   currentSpeaker?: string | null;
+  targetTabId?: number | null;
+  lastSummarizedAt?: number;
+  participantCount?: number;
 }
 
 export interface MeetingStorageInfo {

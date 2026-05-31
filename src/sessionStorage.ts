@@ -9,6 +9,7 @@ export const STORAGE_SOFT_LIMIT_BYTES = 8_500_000;
 export type StoredSession = State & {
   id: string;
   savedAt: number;
+  duration?: number;
 };
 
 type StorageArea = Pick<chrome.storage.StorageArea, "get" | "set" | "remove"> & {

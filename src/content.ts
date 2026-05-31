@@ -301,7 +301,7 @@ void initTheme().catch((err) => console.error(err));
   }
 
   // Configurable option to enable expanding hidden participants
-  let includeHiddenParticipants = true;
+  const includeHiddenParticipants = true;
 
   async function collectParticipants(): Promise<{
     participants: string[];

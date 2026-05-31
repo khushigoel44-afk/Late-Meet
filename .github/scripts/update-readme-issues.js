@@ -7,21 +7,65 @@ const repoOwner = "shouri123";
 const repoName = "Late-Meet";
 const readmePath = path.resolve("README.md");
 
+/**
+ * Sanitizes a string for safe inclusion in a markdown table cell.
+ * Escapes pipe characters, backticks, brackets, and backslashes
+ * that could break table formatting or enable injection.
+ * Also strips HTML tags to prevent XSS via issue titles.
+ */
+function sanitizeForMarkdownTable(str) {
+  if (!str || typeof str !== "string") return "";
+  return str
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/`/g, "\\`")
+    .replace(/\n/g, " ")
+    .replace(/\r/g, "")
+    .trim();
+}
+
+/**
+ * Validates that a URL is a legitimate GitHub issue URL.
+ * Returns sanitized URL or empty string if invalid.
+ */
+function sanitizeIssueUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "github.com") return "";
+    if (!parsed.pathname.includes("/issues/")) return "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
 async function fetchOpenIssues() {
   const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues?state=open&per_page=100`;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": "Late-Meet-Updater",
-    },
-  });
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "Late-Meet-Updater",
+  };
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch issues: ${response.status} ${await response.text()}`);
   }
 
   const issues = await response.json();
+
+  // Validate response structure
+  if (!Array.isArray(issues)) {
+    throw new Error("Unexpected API response: expected an array of issues");
+  }
+
   // Filter out pull requests (GitHub API returns PRs as issues)
   return issues.filter((issue) => !issue.pull_request);
 }
@@ -36,7 +80,7 @@ function parseSkills(body) {
       .split("\n")
       .map((s) => s.replace(/[-*+\s]/g, ""))
       .filter(Boolean);
-    if (list.length > 0) return list.join(", ");
+    if (list.length > 0) return list.map(sanitizeForMarkdownTable).join(", ");
   }
   return "General";
 }
@@ -52,9 +96,17 @@ function generateTable(issues, level) {
 
   let table = `| # | Title | Skills |\n| :---: | :--- | :--- |\n`;
   for (const issue of filtered) {
-    // Extract skills if documented
+    // Sanitize all API-sourced data before including in markdown
+    const safeTitle = sanitizeForMarkdownTable(issue.title);
+    const safeUrl = sanitizeIssueUrl(issue.html_url);
     const skills = parseSkills(issue.body);
-    table += `| [#${issue.number}](${issue.html_url}) | ${issue.title.replace(/\|/g, "\\|")} | ${skills} |\n`;
+    const issueNumber = Number.isInteger(issue.number) ? issue.number : "?";
+
+    if (safeUrl) {
+      table += `| [#${issueNumber}](${safeUrl}) | ${safeTitle} | ${skills} |\n`;
+    } else {
+      table += `| #${issueNumber} | ${safeTitle} | ${skills} |\n`;
+    }
   }
   return table;
 }

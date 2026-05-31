@@ -13,6 +13,16 @@ import { startDashboardAudioCapture } from "./dashboardCapture";
 
 initTheme();
 
+/** Securely checks whether a URL belongs to meet.google.com using URL parsing (not substring matching). */
+function isMeetHostname(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).hostname === "meet.google.com";
+  } catch {
+    return false;
+  }
+}
+
 // ——— Action Item Status Persistence ———
 const actionStatuses = new Map<string, boolean>();
 let currentMeetingId = "unknown";
@@ -451,7 +461,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const peopleCountEl = document.getElementById("dash-people-count");
     if (peopleCountEl) peopleCountEl.textContent = String(state.participants?.length || 0);
 
-    const isMeetTab = Boolean(state.meetingUrl?.includes("meet.google.com/"));
+    const isMeetTab = isMeetHostname(state.meetingUrl);
     const lateJoinersCard = document.getElementById("late-joiners-card");
     if (lateJoinersCard && !isMeetTab) {
       lateJoinersCard.style.display = "none";
@@ -707,7 +717,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const isMeetSession = Boolean(meetingUrl?.includes("meet.google.com/"));
+    const isMeetSession = isMeetHostname(meetingUrl);
     container.innerHTML = participants
       .map((name) => {
         const isLate = lateJoiners?.includes(name);

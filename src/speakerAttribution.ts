@@ -13,7 +13,7 @@ export function resolveTranscriptSpeaker(value: string | null | undefined): stri
 }
 
 // Speaker detection debouncing utility
-export function debounceSpeakerAttribution(callback: Function, delay: number) {
+export function debounceSpeakerAttribution(callback: (...args: any[]) => void, delay: number) {
   let timer: any = null;
   return (...args: any[]) => {
     clearTimeout(timer);
