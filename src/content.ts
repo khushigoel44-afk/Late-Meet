@@ -62,6 +62,8 @@ initTheme();
       '[data-tooltip*="falando" i]',
       '[data-tooltip*="parlando" i]',
       '[data-tooltip*="говорит" i]',
+      '[data-tooltip*="正在讲话" i]',
+      '[data-tooltip*="話しています" i]',
       '[data-is-speaking="true"]',
       '[data-speaking="true"]',
       '[data-active-speaker="true"]',
