@@ -416,7 +416,7 @@ npm run type-check   # TypeScript validation
 
 ```
 
-> 💡 **For a detailed developer setup guide with screenshots, check out the [`docs/GETTING_STARTED.md`](https://www.google.com/search?q=docs/GETTING_STARTED.md) guide.**
+> 💡 **For a detailed developer setup guide with screenshots, check out the [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) guide.**
 
 ```
 
