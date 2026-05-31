@@ -108,6 +108,8 @@ function showDeleteConfirmModal(container: HTMLElement, sessionId: string): void
   // Remove any existing modal
   container.querySelector(".storage-confirm-modal")?.remove();
 
+  const previouslyFocused = document.activeElement as HTMLElement | null;
+
   const modal = document.createElement("div");
   modal.className = "storage-confirm-modal";
   modal.setAttribute("role", "dialog");
@@ -133,7 +135,9 @@ function showDeleteConfirmModal(container: HTMLElement, sessionId: string): void
   const backdrop = modal.querySelector(".storage-confirm-backdrop") as HTMLElement;
 
   function closeModal() {
+    document.removeEventListener("keydown", handleKeydown);
     modal.remove();
+    previouslyFocused?.focus();
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -144,7 +148,7 @@ function showDeleteConfirmModal(container: HTMLElement, sessionId: string): void
     if (e.key === "Tab") {
       const focusable = [cancelBtn, deleteBtn];
       const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const last = focusable.at(-1)!;
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
@@ -157,7 +161,7 @@ function showDeleteConfirmModal(container: HTMLElement, sessionId: string): void
 
   cancelBtn.addEventListener("click", closeModal);
   backdrop.addEventListener("click", closeModal);
-  modal.addEventListener("keydown", handleKeydown);
+  document.addEventListener("keydown", handleKeydown);
 
   deleteBtn.addEventListener("click", async () => {
     deleteBtn.disabled = true;
