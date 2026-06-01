@@ -639,13 +639,11 @@ git push origin feature/your-feature-name
 | [#104](https://github.com/shouri123/Late-Meet/issues/104) | \[FEAT\]: Show live recording duration timer in the popup UI                                 | General |
 |  [#98](https://github.com/shouri123/Late-Meet/issues/98)  | Chore: Add \`.editorconfig\` to maintain consistent coding styles                            | General |
 |  [#73](https://github.com/shouri123/Late-Meet/issues/73)  | Bug: Meeting Time Input Allows Invalid or Past Date/Time Selection Without Proper Validation | General |
-|  [#45](https://github.com/shouri123/Late-Meet/issues/45)  | \[FEATURE\]: Local API Cost & Token Usage Statistics Tracker Dashboard Widget                | General |
 
 #### 🟡 Intermediate — `level-2`
 
 |                             #                             | Title                                                                                                                                                      | Skills  |
 | :-------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------- | :------ |
-| [#421](https://github.com/shouri123/Late-Meet/issues/421) | \[BUG\] Saved session history exports omit transcript and timeline data                                                                                    | General |
 | [#420](https://github.com/shouri123/Late-Meet/issues/420) | \[Accessibility\] Improve Keyboard Navigation and Focus Visibility                                                                                         | General |
 | [#419](https://github.com/shouri123/Late-Meet/issues/419) | \[Accessibility\] Respect prefers-reduced-motion for All UI Animations                                                                                     | General |
 | [#418](https://github.com/shouri123/Late-Meet/issues/418) | \[UI\] Improve Responsiveness of Extension Popup Across Different Screen Sizes                                                                             | General |
