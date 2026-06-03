@@ -1611,6 +1611,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const tabId = sender?.tab?.id;
         if (typeof tabId !== "number") {
           sendResponse({ success: false, error: "no tab id" });
+          return;
+        }
+
         if (
           !isMessageFromActiveMeeting({
             senderTabId: sender?.tab?.id,
@@ -1659,8 +1662,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         await maybeWelcomeJoiners(tabId, joiners);
-        const joiners = detectNewJoiners(message.participants);
-        await maybeWelcomeJoiners(state.targetTabId || undefined, joiners);
         await broadcastStateUpdate();
         sendResponse({ success: true, joiners });
         return;
