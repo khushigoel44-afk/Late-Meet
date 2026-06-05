@@ -174,7 +174,7 @@ export async function renderOnboarding(container: HTMLElement) {
       finishBtn?.addEventListener("click", async () => {
         await chrome.storage.local.set({ onboardingCompleted: true });
         container.hidden = true;
-        location.href = "src/options.html";
+        location.href = "options.html";
       });
     }
   }
@@ -194,7 +194,7 @@ export async function renderOnboarding(container: HTMLElement) {
       // Finish
       await chrome.storage.local.set({ onboardingCompleted: true });
       container.hidden = true;
-      location.href = "src/options.html";
+      location.href = "options.html";
     }
   });
 
@@ -202,7 +202,7 @@ export async function renderOnboarding(container: HTMLElement) {
     if (confirm("Skip the onboarding? You can always view it later in Settings.")) {
       await chrome.storage.local.set({ onboardingCompleted: true });
       container.hidden = true;
-      location.href = "src/options.html";
+      location.href = "options.html";
     }
   });
 
