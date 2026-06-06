@@ -1,4 +1,3 @@
-import "./content.css";
 import {
   collectParticipantNames,
   participantNameFromCandidate,
