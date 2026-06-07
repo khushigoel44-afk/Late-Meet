@@ -135,6 +135,7 @@ It uses **Chrome's native `tabCapture` API** to intercept audio without adding p
 | 💎 **Premium Glass UI** | Deep-monochrome dashboard, glassmorphism, smooth animations |
 | 🏠 **Local-First Storage** | `chrome.storage.local` only — Save or Discard after each session |
 | 🌍 **Multilingual** | ElevenLabs Scribe handles multiple languages out of the box |
+
 </div>
 
 ---
