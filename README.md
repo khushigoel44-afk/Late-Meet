@@ -124,16 +124,16 @@ It uses **Chrome's native `tabCapture` API** to intercept audio without adding p
 
 <div align="center">
 
-|     | Feature                     | What it does                                                                       |
-| :-: | :-------------------------- | :--------------------------------------------------------------------------------- |
-| 🤫  | **Invisible Audio Capture** | Chrome's `tabCapture` + Offscreen Document APIs — no bot joins, no alert shown     |
-| 🔤  | **ElevenLabs Scribe STT**   | Industry-leading multilingual transcription with OpenAI Whisper fallback           |
-| ⚡  | **Late-Joiner Briefings**   | Join 10 min late → hit "Catch Me Up" → get a private AI summary of what you missed |
-| 🧠  | **Proactive Intelligence**  | Auto-detects Meet sessions, 1+N participant tracking, action-item extraction       |
-| 🔑  | **BYOK Model**              | Your ElevenLabs + OpenAI keys — zero vendor lock-in, zero subscriptions            |
-| 💎  | **Premium Glass UI**        | Deep-monochrome dashboard, glassmorphism, smooth animations                        |
-| 🏠  | **Local-First Storage**     | `chrome.storage.local` only — Save or Discard after each session, your choice      |
-| 🌍  | **Multilingual**            | ElevenLabs Scribe handles multiple languages out of the box                        |
+| Feature                        | What it does                                                                       |
+| :----------------------------- | :--------------------------------------------------------------------------------- |
+| 🤫 **Invisible Audio Capture** | Chrome's `tabCapture` + Offscreen Document APIs — no bot joins, no alert shown     |
+| 🔤 **ElevenLabs Scribe STT**   | Industry-leading multilingual transcription with OpenAI Whisper fallback           |
+| ⚡ **Late-Joiner Briefings**   | Join 10 min late → hit "Catch Me Up" → get a private AI summary of what you missed |
+| 🧠 **Proactive Intelligence**  | Auto-detects Meet sessions, 1+N participant tracking, action-item extraction       |
+| 🔑 **BYOK Model**              | Your ElevenLabs + OpenAI keys — zero vendor lock-in, zero subscriptions            |
+| 💎 **Premium Glass UI**        | Deep-monochrome dashboard, glassmorphism, smooth animations                        |
+| 🏠 **Local-First Storage**     | `chrome.storage.local` only — Save or Discard after each session                   |
+| 🌍 **Multilingual**            | ElevenLabs Scribe handles multiple languages out of the box                        |
 
 </div>
 
@@ -708,12 +708,13 @@ Before submitting, verify all boxes:
 
 Control Late Meet without touching your mouse — perfect for accessibility and power users.
 
-| Shortcut       | Mac           | Action                  |
-| :------------- | :------------ | :---------------------- |
-| `Ctrl+Shift+S` | `Cmd+Shift+S` | Toggle recording on/off |
-| `Ctrl+Shift+P` | `Cmd+Shift+P` | Open the side panel     |
+| Shortcut       | Mac           | Action                   |
+| :------------- | :------------ | :----------------------- |
+| `Ctrl+Shift+S` | `Cmd+Shift+S` | Toggle recording on/off  |
+| `Ctrl+Shift+P` | `Cmd+Shift+P` | Open the side panel      |
+| `Ctrl+Shift+Y` | `Cmd+Shift+Y` | Save the current session |
 
-> Shortcuts can be customized at `chrome://extensions/shortcuts`.
+> The save-session shortcut was changed from `Ctrl+Shift+W` / `Cmd+Shift+W` because that combination is reserved by Chrome for closing windows. Shortcuts can be customized at `chrome://extensions/shortcuts`.
 
 ---
 
@@ -915,3 +916,29 @@ in the Software without restriction...
 _Made with 🖤 by the Late Meet community · [Report Bug](https://github.com/shouri123/Late-Meet/issues/new?template=bug_report.md) · [Request Feature](https://github.com/shouri123/Late-Meet/issues/new?template=feature_request.md) · [Join GSSoC 2026](https://gssoc.girlscript.tech/)_
 
 </div>
+
+---
+
+## Troubleshooting
+
+| Issue                                    | Cause                                     | Fix                                                          |
+| ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
+| Transcription not starting               | Microphone permission denied              | Click the lock icon in Chrome address bar → Allow Microphone |
+| Extension popup shows "Not in a meeting" | Tab is not a Google Meet tab              | Navigate to meet.google.com first                            |
+| API key error                            | Key not set or expired                    | Open extension Options and re-enter your API key             |
+| Transcript stops mid-meeting             | Chrome service worker restarted           | Refresh the Meet tab and restart recording                   |
+| Speaker names show as "Unknown"          | Non-ASCII names or Google Meet DOM change | Update the extension to the latest version                   |
+| Storage quota exceeded                   | Too many saved meetings                   | Open the dashboard and delete old sessions                   |
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut      | Action                       |
+| ------------- | ---------------------------- |
+| `Alt+Shift+R` | Start / Stop recording       |
+| `Alt+Shift+P` | Pause / Resume transcription |
+| `Alt+Shift+S` | Generate meeting summary     |
+| `Alt+Shift+E` | Export transcript            |
+
+> **Note:** Shortcuts can be customized at `chrome://extensions/shortcuts`

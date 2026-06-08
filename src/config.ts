@@ -31,7 +31,7 @@ export const MAX_PENDING_AUDIO_CHUNKS = 8;
 export const VAD_SAMPLE_MS = 250;
 
 /** Interval in milliseconds between waveform visualization updates in the UI. */
-export const WAVEFORM_INTERVAL_MS = 50;
+export const WAVEFORM_INTERVAL_MS = 100;
 
 /** Number of amplitude buckets used to render the waveform bar graph. */
 export const WAVEFORM_BUCKETS = 32;
@@ -54,3 +54,10 @@ export const MIN_MEETING_DURATION_FOR_WELCOME = 10;
 
 /** Minimum milliseconds between consecutive state broadcast messages to listeners. */
 export const BROADCAST_THROTTLE_MS = 500;
+
+/**
+ * When true, enables verbose console logging for development.
+ * Vite replaces `import.meta.env.DEV` at build time, ensuring production builds
+ * never accidentally enable debug output by flipping this constant.
+ */
+export const DEBUG = import.meta.env.DEV === true;
