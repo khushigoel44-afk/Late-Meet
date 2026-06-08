@@ -154,12 +154,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ——— Open Dashboard ———
   document.getElementById("open-dashboard")?.addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0]?.id;
-      if (tabId !== undefined) {
-        chrome.sidePanel.open({ tabId });
-      }
-    });
+    chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
   });
 
   // ——— Start Copilot (Audio Capture with User Gesture) ———
