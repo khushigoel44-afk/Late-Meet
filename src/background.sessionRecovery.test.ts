@@ -57,6 +57,30 @@ const SEEDED_GUARDS = {
 
 let messageListener: MessageListener | undefined;
 
+/** Resolves a chrome.storage `get` argument to a flat list of keys. */
+function toKeyList(keys: string | string[] | AnyRecord | null, store: AnyRecord): string[] {
+  if (Array.isArray(keys)) return keys;
+  if (typeof keys === "string") return [keys];
+  return Object.keys(keys ?? store);
+}
+
+/** Minimal in-memory chrome.storage area backed by `store`. */
+function createStorageArea(store: AnyRecord) {
+  return {
+    async get(keys: string | string[] | AnyRecord | null) {
+      const out: AnyRecord = {};
+      for (const key of toKeyList(keys, store)) if (key in store) out[key] = store[key];
+      return out;
+    },
+    async set(values: AnyRecord) {
+      Object.assign(store, values);
+    },
+    async remove(keys: string | string[]) {
+      for (const key of Array.isArray(keys) ? keys : [keys]) delete store[key];
+    },
+  };
+}
+
 function installChromeMock() {
   if (typeof (globalThis as AnyRecord).addEventListener !== "function") {
     (globalThis as AnyRecord).addEventListener = () => {};
@@ -68,28 +92,9 @@ function installChromeMock() {
     activeMeetingState: structuredClone(SEEDED_STATE),
     activeMeetingGuards: structuredClone(SEEDED_GUARDS),
   };
-  const sessionStore: AnyRecord = {};
 
-  function createArea(store: AnyRecord) {
-    return {
-      async get(keys: string | string[] | AnyRecord | null) {
-        const list = Array.isArray(keys)
-          ? keys
-          : typeof keys === "string"
-            ? [keys]
-            : Object.keys(keys ?? store);
-        const out: AnyRecord = {};
-        for (const key of list) if (key in store) out[key] = store[key];
-        return out;
-      },
-      async set(values: AnyRecord) {
-        Object.assign(store, values);
-      },
-      async remove(keys: string | string[]) {
-        for (const key of Array.isArray(keys) ? keys : [keys]) delete store[key];
-      },
-    };
-  }
+  const noop = () => {};
+  const ignored = { addListener: noop };
 
   (globalThis as AnyRecord).chrome = {
     runtime: {
@@ -102,32 +107,29 @@ function installChromeMock() {
           messageListener = cb;
         },
       },
-      onInstalled: { addListener: () => {} },
-      onStartup: { addListener: () => {} },
-      onSuspend: { addListener: () => {} },
+      onInstalled: ignored,
+      onStartup: ignored,
+      onSuspend: ignored,
     },
-    alarms: {
-      onAlarm: { addListener: () => {} },
-      create: () => {},
-    },
+    alarms: { onAlarm: ignored, create: noop },
     tabs: {
-      onUpdated: { addListener: () => {} },
-      onActivated: { addListener: () => {} },
-      onRemoved: { addListener: () => {} },
+      onUpdated: ignored,
+      onActivated: ignored,
+      onRemoved: ignored,
       get: async () => ({}),
       query: async () => [],
       sendMessage: async () => {},
     },
-    commands: { onCommand: { addListener: () => {} } },
+    commands: { onCommand: ignored },
     contextMenus: {
-      onClicked: { addListener: () => {} },
+      onClicked: ignored,
       removeAll: (callback?: () => void) => callback?.(),
-      create: () => {},
+      create: noop,
     },
     sidePanel: { open: async () => {} },
     storage: {
-      local: createArea(localStore),
-      session: createArea(sessionStore),
+      local: createStorageArea(localStore),
+      session: createStorageArea({}),
     },
   };
 }
