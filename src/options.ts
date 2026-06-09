@@ -3,9 +3,11 @@ import {
   saveApiCredentials,
   unlockCredentials,
   isUnlocked,
+  isVaultInitialized,
 } from "./utils/credentials";
 import { validateOpenAIKey, validateElevenLabsKey } from "./utils/api.js";
 import { renderStorageDashboard } from "./storageDashboard";
+import { MIN_PASSPHRASE_LENGTH, evaluatePassphraseStrength } from "./passphraseStrength";
 
 /**
  * Strongly-typed map of all recognized extension settings keys and their
@@ -242,7 +244,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ——— Passphrase management ———
   const passphraseInput = document.getElementById("passphrase-input") as HTMLInputElement | null;
   const passphraseStatus = document.getElementById("passphrase-status");
+  const passphraseStrengthEl = document.getElementById("passphrase-strength");
   let pendingUnlock: Promise<void> | null = null;
+  // Strength rules apply only when first setting up a vault; unlocking an
+  // existing vault must never be blocked, even if its passphrase is weak (#655).
+  let vaultInitialized = await isVaultInitialized();
+
+  function updateStrengthIndicator() {
+    if (!passphraseStrengthEl) return;
+    const value = passphraseInput?.value ?? "";
+
+    // Only show strength feedback during first-time setup of the vault.
+    if (vaultInitialized || isUnlocked() || value.length === 0) {
+      passphraseStrengthEl.textContent = "";
+      passphraseStrengthEl.className = "passphrase-strength";
+      return;
+    }
+
+    const { score, label, meetsMinimum, suggestions } = evaluatePassphraseStrength(value);
+    const detail = meetsMinimum && suggestions.length ? ` — ${suggestions.join(", ")}` : "";
+    passphraseStrengthEl.textContent = `Strength: ${label}${detail}`;
+    passphraseStrengthEl.className = `passphrase-strength strength-${score}`;
+  }
 
   function updatePassphraseUI() {
     if (isUnlocked()) {
@@ -270,8 +293,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       return;
     }
+
+    // First-time setup: enforce minimum strength before creating the vault.
+    if (!vaultInitialized && !evaluatePassphraseStrength(passphrase).meetsMinimum) {
+      if (passphraseStatus) {
+        passphraseStatus.className = "passphrase-status status-danger";
+        passphraseStatus.textContent = `Passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters`;
+      }
+      return;
+    }
+
     const success = await unlockCredentials(passphrase);
     if (success) {
+      vaultInitialized = true;
+      updateStrengthIndicator();
       updatePassphraseUI();
       // Reload API keys now that we can decrypt
       const creds = await getApiCredentials();
@@ -296,8 +331,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   passphraseInput?.addEventListener("blur", () => {
     pendingUnlock = handleUnlock();
   });
+  passphraseInput?.addEventListener("input", updateStrengthIndicator);
 
   updatePassphraseUI();
+  updateStrengthIndicator();
 
   // ——— Save ———
   document.getElementById("save-btn")?.addEventListener("click", async () => {

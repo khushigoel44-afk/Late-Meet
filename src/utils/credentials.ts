@@ -71,6 +71,16 @@ export function isUnlocked(): boolean {
   return derivedKey !== null;
 }
 
+/**
+ * Whether a credential vault already exists (a salt has been stored by a prior
+ * passphrase setup). Used to enforce strength rules only on first-time setup,
+ * never blocking unlock of an existing vault (#655).
+ */
+export async function isVaultInitialized(): Promise<boolean> {
+  const { [SALT_STORAGE_KEY]: storedSalt } = await chrome.storage.local.get([SALT_STORAGE_KEY]);
+  return typeof storedSalt === "string" && storedSalt.length > 0;
+}
+
 export async function unlockCredentials(passphrase: string): Promise<boolean> {
   const { [SALT_STORAGE_KEY]: storedSalt } = await chrome.storage.local.get([SALT_STORAGE_KEY]);
 
