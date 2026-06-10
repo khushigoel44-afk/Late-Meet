@@ -60,4 +60,4 @@ export const BROADCAST_THROTTLE_MS = 500;
  * Vite replaces `import.meta.env.DEV` at build time, ensuring production builds
  * never accidentally enable debug output by flipping this constant.
  */
-export const DEBUG = import.meta.env.DEV === true;
+export const DEBUG = import.meta.env?.DEV === true;
