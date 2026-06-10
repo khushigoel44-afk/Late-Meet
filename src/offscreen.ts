@@ -1,6 +1,8 @@
 import { VoiceActivityTracker, isChunkViable } from "./audioProcessing";
 import {
+  DRAIN_TIMEOUT_MS,
   MAX_BUFFER_MS,
+  MAX_PENDING_CHUNKS,
   SILENCE_FLUSH_MS,
   VAD_SAMPLE_MS,
   WAVEFORM_BUCKETS,

@@ -61,3 +61,9 @@ export const BROADCAST_THROTTLE_MS = 500;
  * never accidentally enable debug output by flipping this constant.
  */
 export const DEBUG = import.meta.env?.DEV === true;
+
+/** Maximum number of pending audio chunks before pausing the recorder. */
+export const MAX_PENDING_CHUNKS = 20;
+
+/** Timeout in milliseconds for draining pending audio chunks before dropping them. */
+export const DRAIN_TIMEOUT_MS = 30000;
