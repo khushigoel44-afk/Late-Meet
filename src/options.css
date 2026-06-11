@@ -385,21 +385,24 @@ body {
 /* Color Circle Grid Picker Styles */
 .accent-picker-grid {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 10px;
 }
 
 .color-dot {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 3px solid rgba(0, 0, 0, 0.2);
+  border: 3px solid transparent;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .color-dot:hover {
   transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* Draw a clear white/dark focus border frame ring around the chosen color ring bubble option */
