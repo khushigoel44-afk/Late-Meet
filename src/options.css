@@ -97,7 +97,7 @@ body {
 
 .options-section:hover {
   background: var(--bg-card);
-  border-color: var(--border-element);
+  border-color: hsl(var(--accent-color));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
@@ -393,7 +393,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: 3px solid rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -410,13 +410,7 @@ body {
   transform: scale(1.05);
 }
 /*CSS GRID(UPDATE)*/
-@media (min-width: 768px) {
-  .options-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
+
 .options-grid {
   display: grid;
   grid-template-columns: 1fr;
