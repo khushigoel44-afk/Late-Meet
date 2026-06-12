@@ -247,7 +247,12 @@ void initTheme().catch((err) => console.error(err));
 
   function upsertBriefOverlay(briefContent: string, targetName?: string) {
     const overlayId = "mc-brief-overlay";
+    const titleId = "mc-brief-title-label";
     let overlay = document.getElementById(overlayId);
+
+    // Track the element that had focus before the overlay opens so we can
+    // restore it when the overlay closes (WCAG 2.4.3 focus order).
+    const previouslyFocused = document.activeElement as HTMLElement | null;
 
     const closeOverlay = () => {
       if (!overlay) return;
@@ -255,12 +260,16 @@ void initTheme().catch((err) => console.error(err));
       window.setTimeout(() => {
         overlay?.remove();
         overlay = null;
+        previouslyFocused?.focus();
       }, 550);
     };
 
     if (!overlay) {
       overlay = document.createElement("div");
       overlay.id = overlayId;
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", titleId);
 
       const card = document.createElement("div");
       card.className = "mc-brief-card";
@@ -274,6 +283,7 @@ void initTheme().catch((err) => console.error(err));
 
       const title = document.createElement("div");
       title.className = "mc-brief-title";
+      title.id = titleId;
       title.textContent = targetName ? `Brief for ${targetName}` : "Meeting brief";
 
       const closeBtn = document.createElement("button");
@@ -305,7 +315,12 @@ void initTheme().catch((err) => console.error(err));
       });
 
       document.body.appendChild(overlay);
-      requestAnimationFrame(() => overlay?.classList.add("mc-visible"));
+      requestAnimationFrame(() => {
+        overlay?.classList.add("mc-visible");
+        // Move focus to the close button so keyboard users can immediately
+        // dismiss the dialog without tabbing through the entire Meet UI.
+        closeBtn.focus();
+      });
     } else {
       const title = overlay.querySelector(".mc-brief-title");
       if (title) title.textContent = targetName ? `Brief for ${targetName}` : "Meeting brief";
