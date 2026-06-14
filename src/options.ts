@@ -7,6 +7,7 @@ import {
 } from "./utils/credentials";
 import { validateOpenAIKey, validateElevenLabsKey } from "./utils/api.js";
 import { renderStorageDashboard } from "./storageDashboard";
+import { renderApiUsageDashboard } from "./apiUsageDashboard";
 import { MIN_PASSPHRASE_LENGTH, evaluatePassphraseStrength } from "./passphraseStrength";
 import { getSettings } from "./settings";
 
@@ -456,5 +457,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const storageContainer = document.getElementById("storage-dashboard-container");
   if (storageContainer) {
     await renderStorageDashboard(storageContainer);
+  }
+
+  // ——— API Usage Dashboard ———
+  const usageContainer = document.getElementById("api-usage-dashboard-container");
+  if (usageContainer) {
+    await renderApiUsageDashboard(usageContainer);
   }
 });
