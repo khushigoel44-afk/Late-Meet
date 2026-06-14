@@ -272,19 +272,19 @@ const state: State = {
 };
 
 async function trackUsage(delta: UsageDelta) {
-  const currentMeetingId = state.meetingId;
+  const meetingIdAtStart = state.meetingId;
+  const startTimeAtStart = state.startTime;
   const { tokens, cost } = calculateDeltaCost(delta);
 
-  state.tokensUsed = (state.tokensUsed ?? 0) + tokens;
-  state.estimatedCost = (state.estimatedCost ?? 0) + cost;
+  if (state.meetingId === meetingIdAtStart && state.startTime === startTimeAtStart) {
+    state.tokensUsed = (state.tokensUsed ?? 0) + tokens;
+    state.estimatedCost = (state.estimatedCost ?? 0) + cost;
+    await broadcastStateUpdate();
+  }
 
   updateUsageStats(delta).catch((err) => {
     console.error("[LateMeet] Failed to persist usage stats:", err);
   });
-
-  if (state.meetingId === currentMeetingId) {
-    await broadcastStateUpdate();
-  }
 }
 
 let selfParticipantName: string | null = null;
