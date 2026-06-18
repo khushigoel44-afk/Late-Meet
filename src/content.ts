@@ -313,6 +313,8 @@ void initTheme().catch((err) => console.error(err));
 
       card.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
           closeOverlay();
           return;
         }
