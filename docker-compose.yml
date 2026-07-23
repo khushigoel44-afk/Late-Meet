@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    user: "root"
     volumes:
       - ./dist:/host_dist
-    command: sh -c "cp -a /app/dist/. /host_dist/ && echo 'Build successful. Files extracted to local ./dist directory.' && ls -la /host_dist"
+    command: sh -c "rm -rf /host_dist/* && cp -r /app/dist/. /host_dist/ && echo 'Build successful. Files extracted to local ./dist directory.' && ls -la /host_dist"
